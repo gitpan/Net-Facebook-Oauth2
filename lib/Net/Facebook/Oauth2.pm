@@ -2,7 +2,7 @@ package Net::Facebook::Oauth2;
 
 use strict;
 use warnings;
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 use LWP::UserAgent;
 use URI::Escape;
 use JSON::Any;
@@ -158,121 +158,54 @@ sub as_json {
 Net::Facebook::Oauth2 - a simple Perl wrapper around Facebook OAuth v2.0 protocol
 
 =head1 SYNOPSIS
-    
-##example using catalyst framework
-##It also can be used 
-    
-    use Net::Facebook::Oauth2;
-    
-    sub index : Private {
-        
-        my ( $self, $c ) = @_;
-        my $params = $c->req->parameters;
-        
-        
-        my $fb = Net::Facebook::Oauth2->new(
-            application_id => 'your_application_id',  ##get this from your facebook developers platform
-            application_secret => 'your_application_secret', ##get this from your facebook developers platform
-        );
-        
-        #### first check if callback URL contains a verifier code  "code" parameter
-        if ($params->{code}){
-            
-            ####second step, we recieved "verifier" code parameters, now get access token
-            ###you need to pass the verifier code to get access_token
-            
-            my $access_token = $fb->get_access_token(code => $params->{code});
-            
-            ###save this token in database or session
-            $c->res->body($access_token);
-            
-        }
-        
-        else {
-            
-            ##there is no verifier code passed so let's create authorization URL and redirect to it
-            
-            my $url = $fb->get_authorization_url(
-                scope => ['offline_access','publish_stream'], ###pass scope/Extended Permissions params as an array telling facebook how you want to use this access
-                callback => 'http://yourdomain.com/facebook',  ##Callback URL, facebook will redirect users after authintication
-                display => 'page' ## how to display authorization page, other options popup "to display as popup window" and wab "for mobile apps"
-            );
-            
-            $c->res->redirect($url);
-            
-            ###scope/Extended Permissions description
-            ##offline_access : Allow your application to edit profile while user is not online
-            ##publish_stream : read write access
-            ##you can find more about facebook scopes/Extended Permissions at
-            ##http://developers.facebook.com/docs/authentication/permissions
-            
-            
-        }
-        
-        
-        
-        
-    }
-    
-    ##Later in your application you can get/post to facebook on the behalf of the authorized user
-    
-    sub get : Local {
-        
-        my ( $self, $c ) = @_;
-        my $params = $c->req->parameters;
-        
-       
-        
-        my $fb = Net::Facebook::Oauth2->new(
-            access_token => 'ACCESS_TOKEN' ##Load previous saved access token for this user
-        );
-        
-        ##lets get list of friends for the authorized user
-        my $friends = $fb->get(
-            'https://graph.facebook.com/me/friends' ##Facebook 'list friend' Graph API URL
-        );
-        
-        $c->res->body($friends->as_json); ##as_json method will print response as json object
-        
-        ##lets search all posts with some keyword
-        ##https://graph.facebook.com/search?q=watermelon&type=post
-        
-        my $topics = $fb->get(
-            'https://graph.facebook.com/search', ##Facebook 'search' Graph API URL
-            {
-                q => 'Keyword',
-                type => 'post'
-            }
-        );
-        
-        $c->res->body($friends->as_hash); ##as_hash method will print response as Perl hash
-        
-    }
-    
-    
-    sub post : Local {
-        
-        my ( $self, $c ) = @_;
-        my $params = $c->req->parameters;
-        
-        ###Lets post a message to the feed of the authorized user
-        
-        my $fb = Net::Facebook::Oauth2->new(
-            access_token => 'ACCESS_TOKEN' ##Load previous saved access token for this user
-        );
-        
-        
-        my $res = $fb->post(
-            'https://graph.facebook.com/me/feed', ###API URL
-            {
-                message => $extra->{facebook} ##hash of params/variables (param=>value)
-            }
-        );
-        
-        c->res->body($res->as_json);
-        
-    }
-    
+
+use CGI;
+my $cgi = CGI->new;
+
+use Net::Facebook::Oauth2;
+
+my $fb = Net::Facebook::Oauth2->new(
+    application_id => 'your_application_id', 
+    application_secret => 'your_application_secret'
+);
+
+###get authorization URL for your application
+my $url = $fb->get_authorization_url(
+    scope => ['offline_access','publish_stream'],
+    callback => 'http://yourdomain.com/facebook/callback',
+    display => 'page'
+);
+
+####now redirect to this url
+print $cgi->redirect($url);
+
+
+##once user vauthorize your application facebook will send him/her back to your application
+##to the callback link provided above
+
+###in your callback block capture verifier code and get access_token
+
+my $fb = Net::Facebook::Oauth2->new(
+    application_id => 'your_application_id',
+    application_secret => 'your_application_secret'
+);
+
+my $access_token = $fb->get_access_token(code => $cgi->param('code'));
+###save this token in database or session
+
+##later on your application you can use this verifier code to comunicate
+##with facebook on behalf of this user
+
+my $fb = Net::Facebook::Oauth2->new(
+    access_token => $access_token
+);
+
+my $info = $fb->get(
+    'https://graph.facebook.com/me' ##Facebook API URL
+);
+
+
+print $info->as_json;
     
     
     
@@ -281,7 +214,7 @@ Net::Facebook::Oauth2 - a simple Perl wrapper around Facebook OAuth v2.0 protoco
 
 Net::Facebook::Oauth2 gives you a way to simply access FaceBook Oauth 2.0 protocol
 
-Please see the above example for more information on how to use this Module
+For more information please see example folder shipped with this Module
 
 =head1 SEE ALSO
 
@@ -293,7 +226,144 @@ http://developers.facebook.com/docs/
 get/post Facebook Graph API
 http://developers.facebook.com/docs/api
 
+=head1 USAGE
 
+=head2 C<Net::Facebook::Oauth-E<gt>new( %args )>
+
+Pass args as hash. C<%args> are:
+
+=over 4
+
+=item * C<application_id >
+
+Your application id as you get from facebook developers platform
+when you register your application
+
+=item * C<application_secret>
+
+Your application secret id as you get from facebook developers platform
+when you register your application
+
+=back
+
+=head2 C<$fb-E<gt>get_authorization_url( %args )>
+
+Return an Authorization URL for your application, once you receive this
+URL redirect user there in order to authorize your application
+
+=over 4
+
+=item * C<scope>
+
+['offline_access','publish_stream',...]
+
+Array of Extended permissions as described by facebook Oauth2.0 API
+you can get more information about scope/Extended Permission from
+http://developers.facebook.com/docs/authentication/permissions
+
+=item * C<callback>
+
+callback URL, where facebook will send users after they authorize
+your application
+
+=item * C<display>
+
+How to display Facebook Authorization page
+
+=over 4
+
+=item * C<page>
+
+This will display facebook authorization page as full page
+
+=item * C<popup>
+
+This option is useful if you want to popup authorization page
+as this option tell facebook to reduce the size of the authorization page
+
+=item * C<wab>
+
+From the name, for wab and mobile applications this option is the best
+facebook authorization page will fit there :)
+
+=back
+
+=back
+
+=head2 C<$fb-E<gt>get_access_token( %args )>
+
+Returns access_token string
+One arg to pass
+
+=over 4
+
+=item * C<code>
+
+This is the verifier code that facebook send back to your
+callback URL once user authorize your app, you need to capture
+this code and pass to this method in order to get access_token
+
+Verifier code will be presented with your callback URL as code
+parameter as the following
+
+http://your-call-back-url.com?code=234er7y6fdgjdssgfsd...
+
+When access token is returned you need to save it in a secure
+place in order to use it later in your application
+
+=back
+
+=head2 C<$fb-E<gt>get( $url,$args )>
+
+Send get request to facebook and returns response back from facebook
+
+=over 4
+
+=item * C<url>
+
+Facebook Graph API URL as string
+
+=item * C<$args>
+
+hashref of parameters to be sent with graph API URL if required
+
+=back
+
+The response returned can be formatted as the following
+
+=over 4
+
+=item * C<$responseE<gt>as_json>
+
+Returns response as json object
+
+=item * C<$responseE<gt>as_hash>
+
+Returns response as perl hashref
+
+=back
+
+For more information about facebook grapg API, please check
+http://developers.facebook.com/docs/api
+
+=head2 C<$fb-E<gt>post( $url,$args )>
+
+Send post request to facebook API, usually to post something
+
+=over 4
+
+=item * C<url>
+
+Facebook Graph API URL as string
+
+=item * C<$args>
+
+hashref of parameters to be sent with graph API URL
+
+=back
+
+For more information about facebook grapg API, please check
+http://developers.facebook.com/docs/api
 
 =head1 AUTHOR
 
