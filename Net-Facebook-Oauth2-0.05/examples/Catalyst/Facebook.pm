@@ -8,7 +8,7 @@ use Net::Facebook::Oauth2;
     
 =head1 DESCRIPTION
 
-this example shows you how to Net::Facebook::Oauth2 with Catalyst,
+this example shows you how to use Net::Facebook::Oauth2 with Catalyst,
 it's not the best way of writing your catalyst controller though :P
 
 The call back URL below is in the same block of
@@ -29,6 +29,7 @@ facebook developer platfor for your application
         my $fb = Net::Facebook::Oauth2->new(
             application_id => 'your_application_id',  ##get this from your facebook developers platform
             application_secret => 'your_application_secret', ##get this from your facebook developers platform
+            callback => 'http://localhost:3000/facebook',  ##Callback URL, facebook will redirect users after authintication
         );
         
         #### first check if callback URL doesn't contain a verifier code  "code" parameter
@@ -38,7 +39,6 @@ facebook developer platfor for your application
             
             my $url = $fb->get_authorization_url(
                 scope => ['offline_access','publish_stream'], ###pass scope/Extended Permissions params as an array telling facebook how you want to use this access
-                callback => 'http://localhost:3000/facebook',  ##Callback URL, facebook will redirect users after authintication
                 display => 'page' ## how to display authorization page, other options popup "to display as popup window" and wab "for mobile apps"
             );
             
@@ -57,30 +57,20 @@ facebook developer platfor for your application
             ####second step, we recieved "verifier" code parameters, now get access token
             ###you need to pass the verifier code to get access_token
             
-            my $access_token = $fb->get_access_token(code => $params->{code});
+            my $access_token = $fb->get_access_token( code => $params->{code} );
             
             ###save this token in database or session
             $c->session->{access_token} =  $access_token;
-            
             $c->res->body('Welcome from facebook');
-            
-            
         }
-        
-        
-        
-        
     }
     
     ##get/post to facebook on the behalf of the authorized user
-    
     ##first get this user information, login name, user profile URL
     sub get : Local {
         
         my ( $self, $c ) = @_;
         my $params = $c->req->parameters;
-        
-       
         
         my $fb = Net::Facebook::Oauth2->new(
             access_token => $c->session->{access_token} ##Load previous saved access token from session or database
@@ -92,7 +82,6 @@ facebook developer platfor for your application
         );
         
         $c->res->body($info->as_json); ##as_json method will print response as json object
-        
     }
     
     ##example 2 - get friends list for this user
@@ -111,7 +100,6 @@ facebook developer platfor for your application
         );
         
         $c->res->body($friends->as_json);
-        
     }
     
     ###example 3 "get" search posts with some keyword
@@ -135,7 +123,6 @@ facebook developer platfor for your application
         );
         
         $c->res->body($topics->as_json);
-        
     }
     
     

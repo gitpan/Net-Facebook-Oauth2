@@ -1,6 +1,6 @@
 Changes
 Makefile.PL
 MANIFEST
-README
+README.pod
 t/Net-Facebook-Oauth2.t
 lib/Net/Facebook/Oauth2.pm

@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use CGI;
 use Net::Facebook::Oauth2;
+use Data::Dumper;
 
 =head1 DESCRIPTION
 
@@ -21,11 +22,11 @@ sub facebook {
     my $fb = Net::Facebook::Oauth2->new(
         application_id => 'your_application_id',  ##get this from your facebook developers platform
         application_secret => 'your_application_secret', ##get this from your facebook developers platform
+        callback => 'http://your-domain.com/callback',  ##Callback URL, facebook will redirect users after authintication
     );
     
     my $url = $fb->get_authorization_url(
         scope => ['offline_access','publish_stream'], ###pass scope/Extended Permissions params as an array telling facebook how you want to use this access
-        callback => 'http://your-domain.com/callback',  ##Callback URL, facebook will redirect users after authintication
         display => 'page' ## how to display authorization page, other options popup "to display as popup window" and wab "for mobile apps"
     );
     
@@ -47,15 +48,13 @@ sub callback {
     my $cgi = CGI->new;
     my $fb = Net::Facebook::Oauth2->new(
         application_id => 'your_application_id',
-        application_secret => 'your_application_secret'
+        application_secret => 'your_application_secret',
+        callback => 'http://your-domain.com/callback'
     );
-    
-    
     
     ####We recieve "verifier" code parameter, now get access token
     ###you need to pass the verifier code to get access_token
     my $access_token = $fb->get_access_token(code => $cgi->param('code'));
-    
     
     ##that's it, now you have access_token of this user
     ###save this token in database or session to use later in your application
@@ -91,10 +90,7 @@ sub get {
     
     print $cgi->header();
     print $friends->as_json;
-    
 }
-
-
 
 ###to post something to facebook use post method
 sub post {
@@ -102,9 +98,9 @@ sub post {
     my $cgi = CGI->new;
     
     ###Lets post a message to the feed of the authorized user
-    
+    my $access_token = get_access_token('userid');
     my $fb = Net::Facebook::Oauth2->new(
-        access_token => $c->session->{access_token}
+        access_token => $access_token
     );
     
     my $res = $fb->post(
@@ -114,11 +110,8 @@ sub post {
         }
     );
     
-    use Data::Dumper;
-    
     print $cgi->header();
     print Dumper($res->as_hash); ##print response as perl hash
-    
 }
 
 

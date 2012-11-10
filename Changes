@@ -1,7 +1,0 @@
-Revision history for Perl extension Net::Facebook::Oauth2.
-
-0.02  Thu Jul 29 3:00:39 2010
-	- Fixed some methods
-	- Added better documentations
-	- Added more examples
-
