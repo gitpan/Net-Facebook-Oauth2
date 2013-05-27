@@ -1,0 +1,26 @@
+---
+abstract: 'a simple Perl wrapper around Facebook OAuth v2.0 protocol'
+author:
+  - 'Mahmoud A. Mehyar <mamod.mehyar@gmail.com>'
+build_requires:
+  Test::Exception: 0
+  Test::MockModule: 0
+  Test::MockObject: 0
+configure_requires:
+  ExtUtils::MakeMaker: 0
+dynamic_config: 1
+generated_by: 'ExtUtils::MakeMaker version 6.6302, CPAN::Meta::Converter version 2.120921'
+license: unknown
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Net-Facebook-Oauth2
+no_index:
+  directory:
+    - t
+    - inc
+requires:
+  JSON::Any: 0
+  LWP::UserAgent: 0
+  URI::Escape: 0
+version: 0.06
